@@ -1,12 +1,14 @@
-use crate::tokenize;
 use std::fmt;
 
 use std::num::ParseFloatError;
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenizeError {
     UnfinishedLiteralValue,
     ParseNumberError(ParseFloatError),
     UnclosedQuotes,
+    UnexpectedEof,
+    CharNotRecognized(char),
 }
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -21,6 +23,13 @@ pub enum Token {
     False,
     String(String),
     Number(f64),
+}
+
+#[cfg(test)]
+impl Token {
+    pub fn string(input: &str) -> Self {
+        Self::String(String::from(input))
+    }
 }
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -47,7 +56,15 @@ pub fn tokenize(input: String) -> Result<Vec<Token>, TokenizeError> {
 }
 
 fn make_token(chars: &Vec<char>, index: &mut usize) -> Result<Token, TokenizeError> {
-    let ch = chars[*index];
+    let mut ch = chars[*index];
+
+    while ch.is_ascii_whitespace() {
+        *index += 1;
+        if *index >= chars.len() {
+            return Err(TokenizeError::UnexpectedEof);
+        }
+        ch = chars[*index];
+    }
     let token = match ch {
         '{' => Token::CLeftBracket,
         '}' => Token::CRightBracket,
@@ -60,20 +77,24 @@ fn make_token(chars: &Vec<char>, index: &mut usize) -> Result<Token, TokenizeErr
         'f' => tokenize_literal(chars, index, Token::False)?,
         '"' => tokenize_string(chars, index)?,
         ch if ch.is_ascii_digit() || ch == '-' => tokenize_float(chars, index)?,
-        _ => todo!("Implement other punctuation tokens"),
+        ch => return Err(TokenizeError::CharNotRecognized(ch)),
     };
     Ok(token)
 }
 fn tokenize_string(chars: &Vec<char>, index: &mut usize) -> Result<Token, TokenizeError> {
     let mut str = String::new();
+    let mut is_escaping = false;
+
     loop {
         *index += 1;
         if *index >= chars.len() {
             return Err(TokenizeError::UnclosedQuotes);
         }
         let ch = chars[*index];
-        if ch == '"' {
-            break;
+        match ch {
+            '"' if !is_escaping => break,
+            '\\' => is_escaping = !is_escaping,
+            _ => is_escaping = false,
         }
         str.push(ch);
     }
@@ -124,7 +145,6 @@ fn tokenize_float(chars: &Vec<char>, index: &mut usize) -> Result<Token, Tokeniz
 
 #[cfg(test)]
 mod tests {
-    use std::num::ParseFloatError;
 
     use crate::tokenize::TokenizeError;
 
@@ -200,7 +220,7 @@ mod tests {
     fn just_ken() {
         let input = String::from("\"ken\"");
 
-        let expected = [Token::String(String::from("ken"))];
+        let expected = [Token::string("ken")];
 
         let actual = tokenize(input).unwrap();
         assert_eq!(actual, expected);
@@ -209,6 +229,22 @@ mod tests {
     fn just_ken_bad() {
         let input = String::from("\"ken");
         let expected = Err(TokenizeError::UnclosedQuotes);
+
+        let actual = tokenize(input);
+        assert_eq!(actual, expected)
+    }
+    #[test]
+    fn escaped_quote() {
+        let input = String::from(r#""this is \" escaped""#);
+        let expected = [Token::string(r#"this is \" escaped"#)];
+
+        let actual = tokenize(input).unwrap();
+        assert_eq!(actual, expected)
+    }
+    #[test]
+    fn unkown_char() {
+        let input = String::from(r#"&"#);
+        let expected = Err(TokenizeError::CharNotRecognized('&'));
 
         let actual = tokenize(input);
         assert_eq!(actual, expected)
