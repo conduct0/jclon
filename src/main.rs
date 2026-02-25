@@ -1,4 +1,4 @@
-use jsonparse::Config;
+use jclon::Config;
 use std::env;
 use std::process;
 
@@ -8,7 +8,7 @@ fn main() {
         process::exit(1);
     });
 
-    if let Err(e) = jsonparse::run(config) {
+    if let Err(e) = jclon::run(config) {
         eprintln!("Application error: {e}");
         process::exit(1);
     }
