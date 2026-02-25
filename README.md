@@ -1,27 +1,14 @@
-# JSON Parser
+# JQ clone in rust
 
-## Goal
+This is a learning project. I started of following along https://blog.davimiku.com/tutorials/json-parsing-rust-1 Now I wanna expand it a bit more, aside from just parsing json. JQ is quite cool so I might try something like that.
 
-Parse JSON text into Rust data structures.
-
-## Interface
-```rust
-fn parse(input: &str) -> Result<Value, ParseError>
-```
-## Types Needed
-
-- Value enum (null, bool, number, string, array, object)
-- ParseError struct
-
-## Phases
-
-1. Parse primitives (null, bool, number, string)
-2. Parse arrays and objects
-3. Handle escape sequences
-4. Add tests
-5. Make a CLI
+- I have to add CLI interface.
+- Test with some json docs
+- Implement pretty printing
+- Queries
 
 ## Constraint
 
-No external dependencies.
+- No external dependencies.
+- No ai code.
 
