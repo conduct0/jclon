@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 
 use crate::Value;
 use crate::tokenize::Token;
@@ -13,6 +14,18 @@ pub enum TokenParseError {
     ExpectedProperty,
 }
 
+impl fmt::Display for TokenParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::UnfinishedEscape => write!(f, "UnfinishedEscape"),
+            Self::InvalidHexDigit => write!(f, "InvalidHexDigit"),
+            Self::InvalidCodePointValue => write!(f, "InvalidCodePointValue"),
+            Self::ExpectedComma => write!(f, "ExpectedComma"),
+            Self::ExpectedColon => write!(f, "ExpectedColon"),
+            Self::ExpectedProperty => write!(f, "ExpectedProperty"),
+        }
+    }
+}
 type ParseResult = Result<Value, TokenParseError>;
 
 pub fn parse_tokens(tokens: &[Token], index: &mut usize) -> ParseResult {

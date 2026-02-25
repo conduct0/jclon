@@ -10,6 +10,17 @@ pub enum TokenizeError {
     UnexpectedEof,
     CharNotRecognized(char),
 }
+impl fmt::Display for TokenizeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TokenizeError::UnfinishedLiteralValue => write!(f, "UnfinishedLiteralValue"),
+            TokenizeError::ParseNumberError(e) => write!(f, "ParseFloatError {e}"),
+            TokenizeError::UnclosedQuotes => write!(f, "UnclosedQuotes"),
+            TokenizeError::UnexpectedEof => write!(f, "UnexpectedEof"),
+            TokenizeError::CharNotRecognized(c) => write!(f, "CharNotRecognized {c}"),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum Token {
     CLeftBracket,
@@ -46,10 +57,17 @@ pub fn tokenize(input: String) -> Result<Vec<Token>, TokenizeError> {
     let mut index = 0;
     let mut tokens = Vec::new();
 
-    while index < chars.len() {
+    'outer: while index < chars.len() {
+        let mut ch = chars[index];
+        while ch.is_ascii_whitespace() {
+            index += 1;
+            if index >= chars.len() {
+                break 'outer;
+            }
+            ch = chars[index];
+        }
         let token = make_token(&chars, &mut index)?;
         tokens.push(token);
-
         index += 1;
     }
     Ok(tokens)
@@ -58,13 +76,6 @@ pub fn tokenize(input: String) -> Result<Vec<Token>, TokenizeError> {
 fn make_token(chars: &Vec<char>, index: &mut usize) -> Result<Token, TokenizeError> {
     let mut ch = chars[*index];
 
-    while ch.is_ascii_whitespace() {
-        *index += 1;
-        if *index >= chars.len() {
-            return Err(TokenizeError::UnexpectedEof);
-        }
-        ch = chars[*index];
-    }
     let token = match ch {
         '{' => Token::CLeftBracket,
         '}' => Token::CRightBracket,
@@ -219,6 +230,15 @@ mod tests {
     #[test]
     fn just_ken() {
         let input = String::from("\"ken\"");
+
+        let expected = [Token::string("ken")];
+
+        let actual = tokenize(input).unwrap();
+        assert_eq!(actual, expected);
+    }
+    #[test]
+    fn just_ken_with_space() {
+        let input = String::from("\"ken\" ");
 
         let expected = [Token::string("ken")];
 
