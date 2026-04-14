@@ -1,7 +1,8 @@
 use std::collections::HashMap;
-use std::error::Error;
 use std::fmt;
 use std::fs;
+use std::io;
+use std::io::Write;
 
 use crate::parse::TokenParseError;
 use crate::parse::parse_tokens;
@@ -18,7 +19,7 @@ pub fn parse(input: String) -> Result<Value, ParseError> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-enum Value {
+pub enum Value {
     Null,
     Boolean(bool),
     String(String),
@@ -43,9 +44,9 @@ impl fmt::Display for Value {
                 write!(f, "[")?;
                 for (i, item) in arr.iter().enumerate() {
                     if i > 0 {
-                        write!(f, ",");
+                        write!(f, ",")?;
                     }
-                    write!(f, "{item}");
+                    write!(f, "{item}")?;
                 }
                 write!(f, "]")
             }
@@ -53,9 +54,9 @@ impl fmt::Display for Value {
                 write!(f, "{{")?;
                 for (i, (key, value)) in obj.iter().enumerate() {
                     if i > 0 {
-                        write!(f, ",");
+                        write!(f, ",")?;
                     }
-                    write!(f, "{key}:{value}");
+                    write!(f, "{key}:{value}")?;
                 }
                 write!(f, "}}")
             }
@@ -63,21 +64,24 @@ impl fmt::Display for Value {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug)]
 pub enum CliError {
-    InvalidArguments,
-    ReadFile,
+    InvalidArguments(String),
+    ReadFile(String),
+    PrettyPrint(std::io::Error),
 }
+
 impl fmt::Display for CliError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::InvalidArguments => write!(f, "InvalidArguments"),
-            Self::ReadFile => write!(f, "ReadFile"),
+            Self::InvalidArguments(e) => write!(f, "InvalidArguments: {e}"),
+            Self::ReadFile(e) => write!(f, "ReadFile: {e}"),
+            Self::PrettyPrint(e) => write!(f, "PrettyPrint error:{e}"),
         }
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum ParseError {
     Tokenize(TokenizeError),
     Parse(TokenParseError),
@@ -92,6 +96,7 @@ impl fmt::Display for ParseError {
         }
     }
 }
+
 impl From<TokenParseError> for ParseError {
     fn from(err: TokenParseError) -> Self {
         Self::Parse(err)
@@ -117,16 +122,19 @@ impl Config {
         args.next();
         let file_path = match args.next() {
             Some(s) => s,
-            None => return Err(ParseError::Cli(CliError::InvalidArguments)),
+            None => {
+                return Err(CliError::InvalidArguments("File path is invalid".to_owned()).into());
+            }
         };
         Ok(Config { file_path })
     }
 }
 
 pub fn run(config: Config) -> Result<(), ParseError> {
-    let contents =
-        fs::read_to_string(config.file_path).map_err(|e| ParseError::Cli(CliError::ReadFile))?;
+    let contents = fs::read_to_string(config.file_path)
+        .map_err(|_| CliError::ReadFile("Error while reading file contents".to_owned()))?;
     let res = parse(contents.clone())?;
-    println!("jowjwjojlj  {res}\n");
+    print! {"{}", res}
+
     Ok(())
 }

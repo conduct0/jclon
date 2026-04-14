@@ -74,7 +74,7 @@ pub fn tokenize(input: String) -> Result<Vec<Token>, TokenizeError> {
 }
 
 fn make_token(chars: &Vec<char>, index: &mut usize) -> Result<Token, TokenizeError> {
-    let mut ch = chars[*index];
+    let ch = chars[*index];
 
     let token = match ch {
         '{' => Token::CLeftBracket,

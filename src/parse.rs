@@ -29,7 +29,7 @@ impl fmt::Display for TokenParseError {
 type ParseResult = Result<Value, TokenParseError>;
 
 pub fn parse_tokens(tokens: &[Token], index: &mut usize) -> ParseResult {
-    let mut token = &tokens[*index];
+    let token = &tokens[*index];
     if matches!(
         token,
         Token::Null | Token::True | Token::False | Token::Number(_) | Token::String(_)
@@ -101,7 +101,6 @@ fn parse_object(tokens: &[Token], index: &mut usize) -> ParseResult {
         }
     }
     *index += 1;
-    print! {"obj {:?}", object}
     Ok(Value::Object(object))
 }
 
